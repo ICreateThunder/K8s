@@ -1,0 +1,9 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata: 
+  name: observability
+servers: 3
+agents: 2
+registries:
+  create:
+    name: observability-registry
