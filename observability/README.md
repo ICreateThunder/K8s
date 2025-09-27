@@ -1,13 +1,13 @@
 # Observability: Metrics, Logging & Tracing
 
-This repository contains an simple HA scratch cluster setup using [k3d](https://github.com/k3d-io/k3d) for testing collection, processing & general best practice surrounding observability in K8s.
+This repository contains an simple cluster setup using [k3d](https://github.com/k3d-io/k3d) for testing collection, processing & general best practice surrounding observability in K8s.
 
-Cluster consists of 3 server / api "nodes" & 2 worker nodes - this is to test etcd, and is closer to real-world applications.
+Cluster consists of 3 server & 2 worker nodes - this is to test a cluster closer to real-world applications.
 
 ## Dependencies
 
 - Docker
-- K3D
+- k3d
 
 ## Setup
 
@@ -23,4 +23,4 @@ chmod +x ./start.sh
 
 ## Local Registries
 
-As a side-effect of this small scratch project, I have been exploring usage of custom / local registries. Therefore, the k3d configuration will automatically provision one. Further, I have written some quick test scripts following the [documentation](https://k3d.io/v5.6.3/usage/registries/#pushing-to-your-local-registry-address) to test this registry when using locally. You can test this by looking at the `scripts/test-registry.sh`.
+As a side-effect of this small scratch project, I have been exploring usage of custom / local registries. Therefore, the k3d configuration will automatically provision one. Further, I have written some quick test scripts following the [documentation](https://k3d.io/v5.6.3/usage/registries/#pushing-to-your-local-registry-address) to test this registry when using locally. You can test this by looking at the `scripts/test-registry.sh` & `scripts/test-deployment.sh`.

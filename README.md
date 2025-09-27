@@ -8,7 +8,8 @@ Throughout the various clusters applications are required to test components.
 
 ## Unicode symbols
 
-For copying / quick reference
+_Copying & quick reference_
 
 ✅ - Checkmark (indicates success / pass)
+
 ❌ - Cross (indicates failure)
