@@ -553,6 +553,8 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "axum-prometheus",
+ "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",

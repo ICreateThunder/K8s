@@ -2,7 +2,7 @@
 FROM rust:1-alpine3.22 as builder
 WORKDIR /usr/src/picoservice-app
 COPY . .
-RUN cargo build --release
+RUN apk add musl-dev && cargo build --release
 
 # Minimal container for runtime
 FROM alpine:3.22
