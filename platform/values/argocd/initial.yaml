@@ -1,0 +1,115 @@
+# =============================================================================
+# ArgoCD — Platform Values
+# =============================================================================
+# TLS is terminated at the Istio ingress gateway (platform-gateway in istio-system).
+# ArgoCD server runs in --insecure mode (HTTP-only within the cluster).
+# Access: https://argocd.internal:<HOST_HTTPS_PORT>
+# =============================================================================
+
+server:
+  # No TLS on the server pod — Istio handles it
+  extraArgs:
+    - --insecure
+
+  # Disable built-in ingress; routing via Istio VirtualService
+  ingress:
+    enabled: false
+
+  # Resource limits — tune to your machine
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+repoServer:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+applicationSet:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+controller:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+redis:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+configs:
+  params:
+    # Required for --insecure mode
+    server.insecure: true
+
+  # ── RBAC ──────────────────────────────────────────────────────────────────
+  # Maps ArgoCD roles to platform roles.
+  # Users are added to ArgoCD accounts separately (or via SSO/OIDC).
+  # The certificate CN is used as the username when authenticating via kubectl.
+  rbac:
+    # Default: read-only for anyone authenticated
+    policy.default: role:readonly
+
+    policy.csv: |
+      # platform-admin group gets full ArgoCD admin
+      g, platform-admin, role:admin
+
+      # developer group can manage Applications (sync, update) but not settings
+      p, role:developer, applications, get,        */*, allow
+      p, role:developer, applications, create,     */*, allow
+      p, role:developer, applications, update,     */*, allow
+      p, role:developer, applications, delete,     */*, allow
+      p, role:developer, applications, sync,       */*, allow
+      p, role:developer, applications, override,   */*, allow
+      p, role:developer, repositories, get,        *,   allow
+      p, role:developer, repositories, create,     *,   allow
+      p, role:developer, logs,         get,        */*, allow
+      p, role:developer, exec,         create,     */*, allow
+      g, developer, role:developer
+
+      # viewer group: read-only (policy.default handles this)
+      g, viewer, role:readonly
+
+  # ── Git repositories ───────────────────────────────────────────────────────
+  # Add your repos here, or register them via the ArgoCD UI/CLI after install.
+  # repositories: []
+
+  # ── Cluster connection ─────────────────────────────────────────────────────
+  # The in-cluster connection is created automatically.
+  # Add remote clusters via: argocd cluster add <context>
+
+# ── Notifications (optional — enable when you have a webhook target) ──────────
+notifications:
+  enabled: false
+
+# ── Metrics for Prometheus ────────────────────────────────────────────────────
+# Exposes /metrics on port 8083. Add a ServiceMonitor after install.
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      team: monitoring

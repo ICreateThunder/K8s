@@ -1,0 +1,77 @@
+# =============================================================================
+# kube-prometheus-stack — Platform Values
+# =============================================================================
+
+# ── Grafana ───────────────────────────────────────────────────────────────────
+grafana:
+  enabled: true
+
+  # Read admin credentials from the secret created by start-cluster.sh.
+  # Secret keys: admin-user, password
+  admin:
+    existingSecret: grafana-credentials
+    userKey: admin-user
+    passwordKey: password
+
+  # No built-in ingress — routed via Istio VirtualService
+  ingress:
+    enabled: false
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  resources:
+    requests:
+      cpu:    50m
+      memory: 128Mi
+    limits:
+      cpu:    500m
+      memory: 512Mi
+
+# ── Prometheus ────────────────────────────────────────────────────────────────
+prometheus:
+  prometheusSpec:
+    # Select ALL ServiceMonitors by default (teams add their own monitors).
+    # Set serviceMonitorSelector with matchLabels to restrict if needed.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    podMonitorSelector: {}
+    ruleSelector: {}
+
+    # Retention: 15 days on a single machine to avoid disk pressure
+    retention: 15d
+    retentionSize: "8GB"
+
+    resources:
+      requests:
+        cpu:    100m
+        memory: 512Mi
+      limits:
+        cpu:    1000m
+        memory: 2Gi
+
+  ingress:
+    enabled: false
+
+# ── Node Exporter ─────────────────────────────────────────────────────────────
+nodeExporter:
+  enabled: true
+
+# ── kube-state-metrics ────────────────────────────────────────────────────────
+kube-state-metrics:
+  enabled: true
+
+# ── AlertManager ─────────────────────────────────────────────────────────────
+alertmanager:
+  enabled: true
+  ingress:
+    enabled: false
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu:    10m
+        memory: 32Mi
+      limits:
+        cpu:    200m
+        memory: 128Mi

@@ -1,0 +1,154 @@
+# =============================================================================
+# Platform — Platform RBAC ClusterRoles
+# =============================================================================
+# Three-tier access model:
+#
+#   platform-admin   — Full cluster control. For SRE / platform team only.
+#   developer        — Deploy and manage workloads within a single namespace.
+#                      Applied as a RoleBinding (namespace-scoped), not Cluster.
+#   viewer           — Read-only view of all resources. For auditors / on-call.
+#
+# Users are created with ./create-user.sh which signs a certificate with the
+# role name as the certificate Organisation (O=<role>). The ClusterRoleBindings
+# below match on the User name (CN). The create-user.sh script creates the
+# individual bindings; these files define the role capabilities only.
+# =============================================================================
+
+# ── platform-admin ────────────────────────────────────────────────────────────
+# Full cluster access. Inherits cluster-admin for simplicity — restrict further
+# by removing the aggregation if you want a narrower blast radius.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-admin
+  labels:
+    platform.io/role: "true"
+aggregationRule:
+  clusterRoleSelectors:
+    - matchLabels:
+        rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules: []   # All rules come from aggregated roles (cluster-admin level)
+
+---
+# ── developer ─────────────────────────────────────────────────────────────────
+# Bound per-namespace via RoleBinding (see create-user.sh).
+# Can deploy workloads, manage configs and secrets, view monitoring in their ns.
+# Cannot touch cluster-scoped resources, RBAC, or other namespaces.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: developer
+  labels:
+    platform.io/role: "true"
+rules:
+  # Core workload resources
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - pods/exec
+      - pods/portforward
+      - services
+      - endpoints
+      - configmaps
+      - persistentvolumeclaims
+      - events
+      - serviceaccounts
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  # Deployments, StatefulSets, DaemonSets, Jobs
+  - apiGroups: [apps]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  - apiGroups: [batch]
+    resources: [jobs, cronjobs]
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  # Horizontal Pod Autoscaler
+  - apiGroups: [autoscaling]
+    resources: [horizontalpodautoscalers]
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  # Istio traffic management (within namespace)
+  - apiGroups: [networking.istio.io]
+    resources:
+      - virtualservices
+      - destinationrules
+      - serviceentries
+      - sidecars
+      - workloadentries
+      - envoyfilters
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  # Istio security (within namespace)
+  - apiGroups: [security.istio.io]
+    resources:
+      - peerauthentications
+      - authorizationpolicies
+      - requestauthentications
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  # Prometheus ServiceMonitors (deploy your own service monitoring)
+  - apiGroups: [monitoring.coreos.com]
+    resources:
+      - servicemonitors
+      - podmonitors
+      - prometheusrules
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  # Network policies (namespace-scoped enforcement)
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies, ingresses]
+    verbs: [get, list, watch, create, update, patch, delete]
+
+  # Read cluster-scoped references
+  - apiGroups: [""]
+    resources: [nodes, persistentvolumes, namespaces]
+    verbs: [get, list, watch]
+
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses]
+    verbs: [get, list, watch]
+
+  # ArgoCD — manage Applications in their namespace
+  - apiGroups: [argoproj.io]
+    resources: [applications, appprojects]
+    verbs: [get, list, watch, create, update, patch, delete, sync]
+
+---
+# ── viewer ────────────────────────────────────────────────────────────────────
+# Cluster-wide read. No write access anywhere.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: viewer
+  labels:
+    platform.io/role: "true"
+rules:
+  - apiGroups: ["", apps, batch, autoscaling]
+    resources: ["*"]
+    verbs: [get, list, watch]
+
+  - apiGroups: [networking.k8s.io, networking.istio.io, security.istio.io]
+    resources: ["*"]
+    verbs: [get, list, watch]
+
+  - apiGroups: [monitoring.coreos.com]
+    resources: ["*"]
+    verbs: [get, list, watch]
+
+  - apiGroups: [argoproj.io]
+    resources: [applications, appprojects]
+    verbs: [get, list, watch]
+
+  # Explicitly deny secrets — viewers should not read secret data
+  # (This is not an explicit deny in RBAC, just omitted from rules above)

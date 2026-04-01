@@ -1,0 +1,18 @@
+# =============================================================================
+# Cilium — Prometheus Integration (applied after Prometheus CRDs exist)
+# =============================================================================
+# Upgrades Cilium to expose a ServiceMonitor that Prometheus will scrape.
+# The ServiceMonitor is labeled `team: monitoring` to be selected by the
+# Prometheus CR's serviceMonitorSelector.
+# =============================================================================
+
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    # Label must match prometheus.prometheusSpec.serviceMonitorSelector in
+    # values/prometheus/initial.yaml so the Prometheus CR selects this monitor.
+    labels:
+      team: monitoring
+    interval: "15s"
+    honorLabels: true

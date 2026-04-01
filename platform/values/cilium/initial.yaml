@@ -1,0 +1,60 @@
+# =============================================================================
+# Cilium — Platform Initial Values
+# =============================================================================
+# Target: k3d (k3s in Docker containers) with rootful Docker.
+# Cilium replaces kube-proxy entirely and is the exclusive CNI.
+# Istio Ambient handles L7; Cilium stays at L3/L4.
+# =============================================================================
+
+# ── kube-proxy replacement ────────────────────────────────────────────────────
+kubeProxyReplacement: true
+
+# ── Exclusive CNI (no Flannel / Canal) ───────────────────────────────────────
+cni:
+  exclusive: true
+
+# ── Container runtime (k3s uses containerd) ──────────────────────────────────
+containerRuntime:
+  integration: containerd
+
+# ── IPAM — follow k3s pod CIDR (set via --cluster-cidr in k3s args) ──────────
+ipam:
+  mode: kubernetes
+
+# ── IPv4 only (IPv6 disabled in k3d containers by default) ───────────────────
+ipv4:
+  enabled: true
+ipv6:
+  enabled: false
+
+# ── Socket-level load balancing ───────────────────────────────────────────────
+# hostNamespaceOnly: true prevents Cilium from intercepting traffic originating
+# from the host namespace, which avoids conflicts with Istio ztunnel in k3d.
+socketLB:
+  hostNamespaceOnly: true
+
+# ── L7 — delegate entirely to Istio ──────────────────────────────────────────
+# Disabling Cilium's L7 proxy prevents double-processing of HTTP traffic.
+l7:
+  backend: disabled
+
+# ── Operator ─────────────────────────────────────────────────────────────────
+# Single replica is sufficient for a non-production HA simulation.
+operator:
+  replicas: 1
+
+# ── Hubble observability ──────────────────────────────────────────────────────
+# Disabled by default to reduce resource usage. Enable with:
+#   helm upgrade cilium cilium/cilium --reuse-values --set hubble.enabled=true \
+#     --set hubble.relay.enabled=true --set hubble.ui.enabled=true
+hubble:
+  enabled: false
+
+# ── Resource limits (tune to host machine) ───────────────────────────────────
+resources:
+  requests:
+    cpu:    100m
+    memory: 512Mi
+  limits:
+    cpu:    1000m
+    memory: 1Gi

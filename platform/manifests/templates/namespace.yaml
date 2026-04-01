@@ -1,0 +1,81 @@
+# =============================================================================
+# Team Namespace Template
+# Replace TEAM_NAME with your team name (e.g. payments, inventory, auth)
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-TEAM_NAME
+  labels:
+    # Enrol all pods in Istio Ambient (ztunnel mTLS at L4, no sidecars)
+    istio.io/dataplane-mode: ambient
+    kubernetes.io/metadata.name: team-TEAM_NAME
+    platform.io/team: TEAM_NAME
+
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-quota
+  namespace: team-TEAM_NAME
+spec:
+  hard:
+    requests.cpu:    "4"
+    requests.memory: 8Gi
+    limits.cpu:      "8"
+    limits.memory:   16Gi
+    pods:            "50"
+    services:        "20"
+    secrets:         "50"
+    configmaps:      "50"
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: container-defaults
+  namespace: team-TEAM_NAME
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu:    50m
+        memory: 64Mi
+      default:
+        cpu:    500m
+        memory: 512Mi
+      max:
+        cpu:    "2"
+        memory: 4Gi
+      min:
+        cpu:    10m
+        memory: 16Mi
+
+---
+# Default deny all ingress and egress.
+# Add explicit allow policies in networkpolicy.yaml for your service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: team-TEAM_NAME
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+
+---
+# Always allow DNS — without this, CoreDNS resolution will fail.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: team-TEAM_NAME
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
